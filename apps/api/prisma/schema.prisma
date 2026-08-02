@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SketchFileType {
+  png
+  jpg
+  svg
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String?
+  oauthProvider String?
+  oauthId      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projects     Project[]
+
+  @@unique([oauthProvider, oauthId])
+  @@map("users")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sketches  Sketch[]
+
+  @@index([ownerId])
+  @@map("projects")
+}
+
+model Sketch {
+  id             String          @id @default(cuid())
+  projectId      String
+  fileUrl        String
+  fileType       SketchFileType
+  uploadedAt     DateTime        @default(now())
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentTree  ComponentTree?
+
+  @@index([projectId])
+  @@map("sketches")
+}
+
+model ComponentTree {
+  id        String   @id @default(cuid())
+  sketchId  String   @unique
+  jsonData  Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sketch    Sketch   @relation(fields: [sketchId], references: [id], onDelete: Cascade)
+
+  @@map("component_trees")
+}
